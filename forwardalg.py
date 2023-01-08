@@ -42,41 +42,43 @@ def chiraldic(jelist):
                     chirals[term1] += [r]
     return chirals
 
-def findkmatrix(xdict,nodenum):
+def findkmatrix(xdict):
     chiralkeys = list(xdict.keys())
-    c = 0
     for relabels in combinations(range(len(xdict)),nodenum+3):
         K = {}
-        c +=1
         relabels = [chiralkeys[i] for i in list(relabels)]
+        relabels = [i for i in xdict if 'P' in i or '{12}' in i]
         for chiral in chiralkeys:
             if chiral in relabels:
-                temp = np.zeros(len(relabels))
-                temp[relabels.index(chiral)] = 1
-                K[chiral] = temp
+                K[chiral] = str(relabels.index(chiral))
             else:
-                found = False
                 for expression in xdict[chiral]:
                     for r in relabels:
                         expression = expression.replace(r,str(relabels.index(r)))
                     expression = expression.replace('*',',')
                     expression = expression.replace('inv','-')
-                    if '_' not in expression:
-                        found = True
-                        Kvector = np.zeros(len(relabels))
-                        for ind in expression.split(','):
-                            if ind!='':
-                                zerovector = np.zeros(len(relabels))
-                                if '-' in ind:
-                                    zerovector[abs(int(ind))] = -1
-                                else:
-                                    zerovector[abs(int(ind))] = 1
-                                Kvector += zerovector
-                        break
-                if found:
-                    K[chiral] = Kvector 
-        if len(K) == len(xdict):
+                    if chiral not in K:
+                        K[chiral] = expression
+                    if expression.count('_')<K[chiral].count('_'):
+                        K[chiral] = expression
+        Unlabeledp = [0]
+        Unlabeled = [K[key].count('_') for key in K]
+        while np.sum(Unlabeledp)<np.sum(Unlabeled):
+            Unlabeled = [K[key].count('_') for key in K]
+            for chiral in K:
+                for item in K[chiral].split(','):
+                    chiral2 = item.replace('-','')
+                    if '_' in item and chiral2 in K:
+                        if '_' not in K[chiral2]:
+                            K[chiral] = K[chiral].replace(item+',',K[chiral2])
+                            K[chiral] = K[chiral].replace(item,K[chiral2])
+            Unlabeledp = [K[key].count('_') for key in K]
+        if np.sum(Unlabeledp)==0:
             break
+    for chiral in K:
+        for i in range(len(xdict)):
+            if str(i) in K[chiral]
+    return K
 
 
 jeterms = jandeterms('c4z4.txt')
