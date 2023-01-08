@@ -42,7 +42,7 @@ def chiraldic(jelist):
                     chirals[term1] += [r]
     return chirals
 
-def findkmatrix(xdict):
+def findkmatrix(xdict,nodenum):
     chiralkeys = list(xdict.keys())
 
     'SEARCH FOR A RELABELING'
@@ -93,9 +93,28 @@ def findkmatrix(xdict):
         K[chiral] = kvec
     return K
 
+def findtmatrix(Kdict, nodenum):
+    tprime = np.zeros(nodenum+3)
+    tlist = []
+    for i in range(len(tprime)):
+        for j in range(len(tprime)):
+            if i!=j:
+                t = list(tprime.copy())
+                t[i] = 1
+                t[j] = 1
+                store = True
+                for k in Kdict:
+                    if np.dot(t,Kdict[k])<0:
+                        store = False
+                        break
+                if store and t not in tlist:
+                    tlist += [t]
+    return tlist
+
+
 
 jeterms = jandeterms('c4z4.txt')
 xdict = chiraldic(jeterms)
-k = findkmatrix(xdict)
+k = findkmatrix(xdict,4)
 
 #%%
