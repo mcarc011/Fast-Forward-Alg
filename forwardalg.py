@@ -91,7 +91,6 @@ def findkmatrix(xdict):
                     zero[abs(int(d))] = 1
                 kvec += zero
         K[chiral] = kvec
-
     return K
 
 
