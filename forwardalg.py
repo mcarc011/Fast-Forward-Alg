@@ -44,6 +44,8 @@ def chiraldic(jelist):
 
 def findkmatrix(xdict):
     chiralkeys = list(xdict.keys())
+
+    'SEARCH FOR A RELABELING'
     for relabels in combinations(range(len(xdict)),nodenum+3):
         K = {}
         relabels = [chiralkeys[i] for i in list(relabels)]
@@ -75,14 +77,26 @@ def findkmatrix(xdict):
             Unlabeledp = [K[key].count('_') for key in K]
         if np.sum(Unlabeledp)==0:
             break
+
+    'TURN THE STRING DATA INTO ARRAYS'
     for chiral in K:
-        for i in range(len(xdict)):
-            if str(i) in K[chiral]
+        datum = K[chiral].split(',')
+        kvec = np.zeros(nodenum+3)
+        for d in datum:
+            if d!='':
+                zero = np.zeros(nodenum+3)
+                if '-' in d:
+                    zero[abs(int(d))] = -1
+                else:
+                    zero[abs(int(d))] = 1
+                kvec += zero
+        K[chiral] = kvec
+
     return K
 
 
 jeterms = jandeterms('c4z4.txt')
 xdict = chiraldic(jeterms)
-nodenum = 4
+k = findkmatrix(xdict)
 
 #%%
