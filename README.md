@@ -1,8 +1,8 @@
 # Forward Algorithm
-The following is a module that implements the fast forward algorithm as presented in [[1]](https://arxiv.org/pdf/1506.03818.pdf#page=19).
-
+So far the algorithm can take the J and E terms in this format:
 <img src="./initial.png">
 
+And arrive at the K matrix using brute force.
 <img src="./kmatrix.png">
 
 ----
