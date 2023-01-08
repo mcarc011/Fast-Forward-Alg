@@ -1,5 +1,5 @@
 # Forward Algorithm
-So far the algorithm can take the J and E terms in this format (this was taken from the latex source of the paper):
+So far the algorithm can take the J and E terms in this format (this was taken from the latex source of the polytopes paper):
 
 <img src="./initial.png">
 
