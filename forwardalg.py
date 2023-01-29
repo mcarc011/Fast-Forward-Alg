@@ -135,7 +135,7 @@ def findtmatrix(Kdict, nodenum):
 
 
 
-jeterms = jandeterms('c4z4.txt')
+jeterms = jandeterms('model18.txt')
 xdict = chiraldic(jeterms)
 k = findkmatrix(xdict,4)
 K = np.matrix([k[n] for n in k])
