@@ -1,6 +1,8 @@
 #%%
 import numpy as np
+import sympy
 from itertools import combinations
+from itertools import product
 
 def jandeterms(filestr):
     with open(filestr,'r') as f:
@@ -93,28 +95,51 @@ def findkmatrix(xdict,nodenum):
         K[chiral] = kvec
     return K
 
+
 def findtmatrix(Kdict, nodenum):
-    tprime = np.zeros(nodenum+3)
     tlist = []
-    for i in range(len(tprime)):
-        for j in range(len(tprime)):
-            if i!=j:
-                t = list(tprime.copy())
-                t[i] = 1
-                t[j] = 1
-                store = True
-                for k in Kdict:
-                    if np.dot(t,Kdict[k])<0:
-                        store = False
-                        break
-                if store and t not in tlist:
-                    tlist += [t]
-    return tlist
+    for t in product(range(2),repeat=nodenum+3):
+        store = True
+        for k in Kdict:
+            if np.dot(t,Kdict[k])<0:
+                store = False
+                break
+        if store and t not in tlist:
+            tlist += [list(t)]
+    tlist = [np.array(i) for i in tlist]
+
+    def treducefunc(tmatrix,irepeat):
+        tnew = []
+        for n,ti in enumerate(tmatrix):
+            save = True
+            for addedarr in combinations(range(len(tmatrix)),irepeat):
+                if n not in addedarr:
+                    tn = addedarr[0]
+                    for a in addedarr[1:]:
+                        tn += tmatrix[a]
+                    if all(tn==ti):
+                        save = False
+                if not save:
+                    break
+            if save:
+                tnew +=[ti]
+        return tnew
+
+    i = 2
+    while i<len(tlist):
+        tlist = treducefunc(tlist,i)
+        i+=1
+        
+    return np.matrix([t0 for t0 in tlist if np.sum(t0)>0])
+    #return [tmatrix[i] for i in inds]
 
 
 
 jeterms = jandeterms('c4z4.txt')
 xdict = chiraldic(jeterms)
 k = findkmatrix(xdict,4)
+K = np.matrix([k[n] for n in k])
+T = np.transpose(findtmatrix(k,4))
+print(K*T)
 
 #%%
