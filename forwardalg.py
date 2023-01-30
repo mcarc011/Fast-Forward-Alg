@@ -10,13 +10,15 @@ def jandeterms(filestr):
         f.close()
     monomials = text.split('\\')
     monomials = [line.split(':')[1] for line in monomials if ':' in line]
+    monomials = [line.replace(' & ','|') for line in monomials]
     monomials = [line.replace('&','') for line in monomials]
     return monomials
 
 def chiraldic(jelist):
     chirals = {}
     for mon in jelist:
-        Jterm,Eterm = mon.split('    ')
+        Jterm,Eterm = mon.split('|')[1],mon.split('|')[2]
+        Jterm,Eterm,mon = Jterm.replace('|',''), Eterm.replace('|',''), mon.replace('|','')
         Jterm,Eterm = Jterm.split('-'), Eterm.split('-')
         tempterm = {}
         for term in mon.split(' '):
@@ -96,17 +98,18 @@ def findkmatrix(xdict,nodenum):
     return K
 
 
-def findtmatrix(Kdict, nodenum):
+def findtmatrix(kmatrix, nodenum):
     tlist = []
     for t in product(range(2),repeat=nodenum+3):
         store = True
-        for k in Kdict:
-            if np.dot(t,Kdict[k])<0:
+        for k in kmatrix:
+            if np.dot(t,k)<0:
                 store = False
                 break
         if store and t not in tlist:
             tlist += [list(t)]
     tlist = [np.array(i) for i in tlist]
+    tvectors = tlist.copy()
 
     def treducefunc(tmatrix,irepeat):
         tnew = []
@@ -130,16 +133,28 @@ def findtmatrix(Kdict, nodenum):
         tlist = treducefunc(tlist,i)
         i+=1
         
-    return np.matrix([t0 for t0 in tlist if np.sum(t0)>0])
+    return np.matrix([t0 for t0 in tlist if np.sum(t0)>0]),tvectors
     #return [tmatrix[i] for i in inds]
 
 
 
-jeterms = jandeterms('model18.txt')
+jeterms = jandeterms('model3.txt')
 xdict = chiraldic(jeterms)
-k = findkmatrix(xdict,4)
-K = np.matrix([k[n] for n in k])
-T = np.transpose(findtmatrix(k,4))
-print(K*T)
+k = findkmatrix(xdict,8)
+#K = np.matrix([k[n] for n in k])
+
+# #SPPxC
+# K = [
+#     [1,1,0,0,0,0,0,0,0,0],
+#     [0,1,1,0,0,0,0,0,0,0],
+#     [0,0,0,1,0,0,-1,0,0,0],
+#     [0,0,0,0,1,0,1,0,0,0],
+#     [0,0,0,0,0,1,1,0,0,0],
+#     [0,0,0,0,0,0,0,1,1,1]
+#     ]
+# K = np.transpose(K)
+
+T,tvec = findtmatrix(K,3)
+print(K*np.transpose(T))
 
 #%%
