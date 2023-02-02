@@ -49,11 +49,29 @@ def chiraldic(jelist):
 def findkmatrix(xdict,nodenum):
     chiralkeys = list(xdict.keys())
 
+    def turn2array(ktempdict):
+        'TURN THE STRING DATA INTO ARRAYS'
+        for chiral in ktempdict:
+            datum = ktempdict[chiral].split(',')
+            kvec = np.zeros(nodenum+3)
+            for d in datum:
+                if d!='':
+                    zero = np.zeros(nodenum+3)
+                    if '-' in d:
+                        zero[abs(int(d))] = -1
+                    else:
+                        zero[abs(int(d))] = 1
+                    kvec += zero
+            if abs(np.sum(kvec))>1:
+                raise ValueError
+            ktempdict[chiral] = kvec
+        return ktempdict
+
     'SEARCH FOR A RELABELING'
     for relabels in combinations(range(len(xdict)),nodenum+3):
         K = {}
         relabels = [chiralkeys[i] for i in list(relabels)]
-        relabels = [i for i in xdict if 'P' in i or '{12}' in i]
+        #relabels = [i for i in xdict if 'P' in i or '{12}' in i]
         for chiral in chiralkeys:
             if chiral in relabels:
                 K[chiral] = str(relabels.index(chiral))
@@ -80,22 +98,12 @@ def findkmatrix(xdict,nodenum):
                             K[chiral] = K[chiral].replace(item,K[chiral2])
             Unlabeledp = [K[key].count('_') for key in K]
         if np.sum(Unlabeledp)==0:
-            break
+            try:
+                Knew = turn2array(K)
+                return Knew
+            except ValueError:
+                pass
 
-    'TURN THE STRING DATA INTO ARRAYS'
-    for chiral in K:
-        datum = K[chiral].split(',')
-        kvec = np.zeros(nodenum+3)
-        for d in datum:
-            if d!='':
-                zero = np.zeros(nodenum+3)
-                if '-' in d:
-                    zero[abs(int(d))] = -1
-                else:
-                    zero[abs(int(d))] = 1
-                kvec += zero
-        K[chiral] = kvec
-    return K
 
 
 def findtmatrix(kmatrix, nodenum):
@@ -136,12 +144,49 @@ def findtmatrix(kmatrix, nodenum):
     return np.matrix([t0 for t0 in tlist if np.sum(t0)>0]),tvectors
     #return [tmatrix[i] for i in inds]
 
+def dmatrix(xdictvar,nodenum):
+    D = []
+    for chiral in xdictvar.keys():
+        t0 = np.zeros(nodenum)
+        ind = chiral[chiral.find('{')+1:chiral.find('}')]
+        ind1,ind2 = int(ind[0]),int(ind[1])
+        t0[ind1-1],t0[ind2-1] = 1,-1
+        D += [t0]
+    return np.transpose(D)[:-1]
 
 
-jeterms = jandeterms('model3.txt')
-xdict = chiraldic(jeterms)
-k = findkmatrix(xdict,8)
-#K = np.matrix([k[n] for n in k])
+def qjeterms(pmatrix):
+    u, s, vh = np.linalg.svd(pmatrix)
+    null_space = vh[s <= 1e-12]
+    return null_space.T
+
+models = [(4,'c4z4.txt')]
+#(4,'c4z4.txt')]
+for m in models:
+    jeterms = jandeterms(m[1])
+    xdict = chiraldic(jeterms)
+    k = findkmatrix(xdict,m[0])
+    K = [k[n] for n in k]
+
+    kp = [[int(ki) for ki in k[n]] for n in k]
+    print('K Matrix\n')
+    print(np.array(kp))
+    T,tvec = findtmatrix(K,m[0])
+    P = K*np.transpose(T)
+
+    print('\n\nP Matrix\n')
+    print(P)
+    print(P[0].size,len(P))
+    
+    Dt = dmatrix(xdict,m[0])
+    print('\n\nQd Matrix\n')
+    print(Dt*P)
+
+#%%
+
+
+
+
 
 # #SPPxC
 # K = [
@@ -154,7 +199,25 @@ k = findkmatrix(xdict,8)
 #     ]
 # K = np.transpose(K)
 
-T,tvec = findtmatrix(K,3)
-print(K*np.transpose(T))
 
-#%%
+# #C4/z3
+# K = [
+#     [1,0,0,0,0,-1,0,-1,-1,0,0,-1],
+#     [0,1,1,0,0,1,0,1,1,0,0,1],
+#     [0,-1,0,1,0,0,0,-1,0,0,-1,-1],
+#     [0,1,0,0,1,1,0,1,0,0,1,1],
+#     [0,0,0,0,0,0,1,1,1,0,0,0],
+#     [0,0,0,0,0,0,0,0,0,1,1,1],
+#     ]
+# K = np.transpose(K)
+
+# #c4/z2
+# K = [
+#     [1,0,0,-1,0,-1,0,-1],
+#     [0,1,0,1,0,1,0,1],
+#     [0,0,1,1,0,0,0,0],
+#     [0,0,0,0,1,1,0,0],
+#     [0,0,0,0,0,0,1,1],
+#     ]
+# K = np.transpose(K)
+
