@@ -1,6 +1,7 @@
 #%%
 import numpy as np
 import sympy
+import time
 from itertools import combinations
 from itertools import product
 
@@ -47,7 +48,21 @@ def chiraldic(jelist):
     return chirals
 
 def findkmatrix(xdict,nodenum):
-    chiralkeys = list(xdict.keys())
+
+    def chiralweight(xdict):
+        keyweights = []
+        for X in xdict.keys():
+            weight = 0
+            for expressions in xdict.values():
+                count = 0
+                for expi in expressions:
+                    if X in expi:
+                        count = 1
+                        break
+                weight += count
+            keyweights += [(weight,X)]
+        keyweights.sort(reverse=True)
+        return keyweights         
 
     def turn2array(ktempdict):
         'TURN THE STRING DATA INTO ARRAYS'
@@ -66,7 +81,9 @@ def findkmatrix(xdict,nodenum):
                 raise ValueError
             ktempdict[chiral] = kvec
         return ktempdict
-
+    
+    chiralkeys = [t[1] for t in chiralweight(xdict)]   
+    
     'SEARCH FOR A RELABELING'
     for relabels in combinations(range(len(xdict)),nodenum+3):
         K = {}
@@ -105,7 +122,6 @@ def findkmatrix(xdict,nodenum):
                 pass
 
 
-
 def findtmatrix(kmatrix, nodenum):
     tlist = []
     for t in product(range(2),repeat=nodenum+3):
@@ -119,27 +135,42 @@ def findtmatrix(kmatrix, nodenum):
     tlist = [np.array(i) for i in tlist]
     tvectors = tlist.copy()
 
-    def treducefunc(tmatrix,irepeat):
-        tnew = []
-        for n,ti in enumerate(tmatrix):
+    def treducefunc(tindv,ttest):
+        start = time.time()
+        for n,ti in enumerate(ttest):
+            if n&20==0:
+                print(round(100*(n/len(ttest)),2))
+                print(int((time.time()-start)/60))
             save = True
-            for addedarr in combinations(range(len(tmatrix)),irepeat):
-                if n not in addedarr:
-                    tn = addedarr[0]
-                    for a in addedarr[1:]:
-                        tn += tmatrix[a]
+            lengthi = 0
+            normv = np.linalg.norm(ti)
+            while lengthi < len(tindv):
+                lengthi += 1
+                if np.sqrt(lengthi)>normv:
+                    break
+                for addedarr in combinations(range(len(tindv)),lengthi):
+                    tn = np.zeros(nodenum+3)
+                    for a in addedarr:
+                        tn += tindv[a]
                     if all(tn==ti):
                         save = False
+                        break
                 if not save:
                     break
             if save:
-                tnew +=[ti]
-        return tnew
+                tindv +=[ti]
+        return tindv
 
-    i = 2
-    while i<len(tlist):
-        tlist = treducefunc(tlist,i)
-        i+=1
+    _, inds = sympy.Matrix(tlist).T.rref() 
+    tprime = [tlist[i] for i in inds]
+    tsort= [(round(np.linalg.norm(tp),2),ti) for ti,tp in enumerate(tprime)]
+    tsort.sort()
+    tprime = [tprime[tp[1]] for tp in tsort]
+    tres = []
+    for tind,t in enumerate(tlist):
+        if tind not in inds:
+            tres += [t]
+    tlist = treducefunc(tprime,tres)
         
     return np.matrix([t0 for t0 in tlist if np.sum(t0)>0]),tvectors
     #return [tmatrix[i] for i in inds]
@@ -149,43 +180,54 @@ def dmatrix(xdictvar,nodenum):
     for chiral in xdictvar.keys():
         t0 = np.zeros(nodenum)
         ind = chiral[chiral.find('{')+1:chiral.find('}')]
-        ind1,ind2 = int(ind[0]),int(ind[1])
+        if '.' in ind:
+            ind = ind.split('.')
+            ind1,ind2 = int(ind[0]),int(ind[1])
+        else:
+            ind1,ind2 = int(ind[0]),int(ind[1])
         t0[ind1-1],t0[ind2-1] = 1,-1
         D += [t0]
     return np.transpose(D)[:-1]
+    
 
+models = [(8,'model9.txt')]
+models = [(12,'model18.txt')]
+#models = [(6,'model3.txt')]
+#models = [(4,'c4z4.txt')]
 
-def qjeterms(pmatrix):
-    u, s, vh = np.linalg.svd(pmatrix)
-    null_space = vh[s <= 1e-12]
-    return null_space.T
-
-models = [(4,'c4z4.txt')]
-#(4,'c4z4.txt')]
 for m in models:
     jeterms = jandeterms(m[1])
     xdict = chiraldic(jeterms)
     k = findkmatrix(xdict,m[0])
-    K = [k[n] for n in k]
+    Km = [k[n] for n in k]
 
     kp = [[int(ki) for ki in k[n]] for n in k]
     print('K Matrix\n')
     print(np.array(kp))
-    T,tvec = findtmatrix(K,m[0])
-    P = K*np.transpose(T)
-
+    T,tvec = findtmatrix(Km,m[0])
+    P = Km*np.transpose(T)
+#%%
     print('\n\nP Matrix\n')
     print(P)
     print(P[0].size,len(P))
-    
-    Dt = dmatrix(xdict,m[0])
-    print('\n\nQd Matrix\n')
-    print(Dt*P)
+    #%%
+    # Dt = dmatrix(xdict,m[0])
+    # print('\n\nQd Matrix\n')
+    # print(Dt*P)
+
+    # Dt = [list(e) for e in Dt]
+    # Dt = [i[0]/abs(i[0]) for i in Dt]
+
+    # Et = [list(e) for e in null_space(P)]
+    # Et = [i[0]/abs(i[0]) for i in Et]
+    # print('\n\nQE Matrix\n')
+    # print(Et)
+
+    # Qt = Dt*Et
+    # print('\n\nToric Diagram\n')
+    # print(Dt*P)
 
 #%%
-
-
-
 
 
 # #SPPxC
