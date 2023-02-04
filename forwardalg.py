@@ -47,22 +47,7 @@ def chiraldic(jelist):
                     chirals[term1] += [r]
     return chirals
 
-def findkmatrix(xdict,nodenum):
-
-    def chiralweight(xdict):
-        keyweights = []
-        for X in xdict.keys():
-            weight = 0
-            for expressions in xdict.values():
-                count = 0
-                for expi in expressions:
-                    if X in expi:
-                        count = 1
-                        break
-                weight += count
-            keyweights += [(weight,X)]
-        keyweights.sort(reverse=True)
-        return keyweights         
+def findkmatrix(xdict,nodenum,chiralweight):       
 
     def turn2array(ktempdict):
         'TURN THE STRING DATA INTO ARRAYS'
@@ -82,7 +67,7 @@ def findkmatrix(xdict,nodenum):
             ktempdict[chiral] = kvec
         return ktempdict
     
-    chiralkeys = [t[1] for t in chiralweight(xdict)]   
+    chiralkeys = [t[1] for t in chiralweight]   
     
     'SEARCH FOR A RELABELING'
     for relabels in combinations(range(len(xdict)),nodenum+3):
@@ -144,14 +129,15 @@ def findtmatrix(kmatrix, nodenum):
             save = True
             lengthi = 0
             normv = np.linalg.norm(ti)
-            while lengthi < len(tindv):
+            testvec = [ts for ts in tindv if np.linalg.norm(ts)<normv]
+            while lengthi < len(tindv[0]) or lengthi < len(testvec):
                 lengthi += 1
                 if np.sqrt(lengthi)>normv:
                     break
-                for addedarr in combinations(range(len(tindv)),lengthi):
+                for addedarr in combinations(range(len(testvec)),lengthi):
                     tn = np.zeros(nodenum+3)
                     for a in addedarr:
-                        tn += tindv[a]
+                        tn += testvec[a]
                     if all(tn==ti):
                         save = False
                         break
@@ -190,15 +176,26 @@ def dmatrix(xdictvar,nodenum):
     return np.transpose(D)[:-1]
     
 
-models = [(8,'model9.txt')]
-models = [(12,'model18.txt')]
+def Xweight(filestr,Xkeys):
+    with open(filestr,'r') as f:
+        text = f.read()
+        f.close()
+    xweights = []
+    for key in Xkeys:
+        xweights+=[(len(text.split(key))-1,key)]
+    xweights.sort()
+    return xweights
+
+#models = [(8,'model9.txt')]
+#models = [(10,'model15.txt')]
+#models = [(12,'model17.txt')]
 #models = [(6,'model3.txt')]
 #models = [(4,'c4z4.txt')]
 
 for m in models:
     jeterms = jandeterms(m[1])
     xdict = chiraldic(jeterms)
-    k = findkmatrix(xdict,m[0])
+    k = findkmatrix(xdict,m[0],Xweight(m[1],xdict.keys()))
     Km = [k[n] for n in k]
 
     kp = [[int(ki) for ki in k[n]] for n in k]
@@ -206,7 +203,7 @@ for m in models:
     print(np.array(kp))
     T,tvec = findtmatrix(Km,m[0])
     P = Km*np.transpose(T)
-#%%
+
     print('\n\nP Matrix\n')
     print(P)
     print(P[0].size,len(P))
