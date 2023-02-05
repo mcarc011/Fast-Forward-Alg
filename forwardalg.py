@@ -241,56 +241,46 @@ def kmodel(name):
         K = np.transpose(K)
     return K
 
-def matrixnorm(fmatrix):
-    fmatrix = np.transpose([np.array([round(q,2) for q in fm]) for fm in fmatrix])
-    fmnorm = np.amin([abs(fmatrix.flatten()[i]) for i in np.nonzero(fmatrix.flatten())])
-    fmatrix = np.transpose(fmatrix/fmnorm)
-    return fmatrix
+# def matrixnorm(fmatrix):
+#     fmatrix = np.transpose([np.array([round(q,2) for q in fm]) for fm in fmatrix])
+#     fmnorm = np.amin([abs(fmatrix.flatten()[i]) for i in np.nonzero(fmatrix.flatten())])
+#     fmatrix = np.transpose(fmatrix/fmnorm)
+#     return fmatrix
 
 def torickern(qtarrays):
     return
 
-#models = [(8,'model9.txt')]
+models = [(8,'model9.txt')]
 #models = [(10,'model15.txt')]
 #models = [(12,'model17.txt')]
 #models = [(6,'model3.txt')]
-models = [(4,'c4z4.txt')]
+#models = [(4,'c4z4.txt')]
 
 for m in models:
     jeterms = jandeterms(m[1])
     xdict = chiraldic(jeterms)
     k = findkmatrix(xdict,m[0],Xweight(m[1],xdict.keys()))
     Km = [k[n] for n in k]
-
     kp = [[int(ki) for ki in k[n]] for n in k]
-    # print('K Matrix\n')
-    # print(np.array(kp))
+
     T,tvec = findtmatrix(Km,m[0])
-    P = Km*np.transpose(T)
+    P = sympy.Matrix(Km*np.transpose(T))
 
-    print('\n\nP Matrix\n')
-    print(P)
-    print(P[0].size,len(P))
+    Dt = sympy.Matrix(dmatrix(list(k.keys()),m[0]))
+    Qd = P.gauss_jordan_solve(Dt.T)
+    Qdeval = Qd[0]
+    for var in Qd[1]:
+        Qdeval = Qdeval.subs(var,0)
+    Qd = Qdeval.T
 
-    Dt = dmatrix(list(k.keys()),m[0])
-    Qd = [np.linalg.lstsq(P,d)[0] for d in Dt]
-    Qd = matrixnorm(Qd)
-    Qd = [[int(q) for q in qd] for qd in Qd]
-    Qd = sympy.Matrix(Qd)
-    print('\n\nQd Matrix\n')
-    print(Qd)
+    Et = P.nullspace()
+    Et = sympy.Matrix([list(e.T) for e in Et])
 
-    Psm = sympy.Matrix(P.tolist())
-    Et = sympy.Matrix(Psm.nullspace())
-    Et = Et.T
-    print('\n\nQE Matrix\n')
-    print(Et)
+    Qt = Qd.row_insert(0,Et)
 
-    Qt = [list(e) for e in np.array(Et)]+[list(d) for d in np.array(Qd)]
-    Qt2 = sympy.Matrix(Qt)
-    print('\n\nToric Diagram\n')
-    G = Qt2.nullspace()
+    G = Qt.nullspace()
     G = sympy.Matrix([list(g.T) for g in G])
+
 
 #%%
 
