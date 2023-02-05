@@ -157,7 +157,7 @@ def findtmatrix(kmatrix, nodenum):
                 if not save:
                     break
             if save:
-                tindv +=[ti]
+                tindv += [ti]
                 tindvsig += [tisig]
         return tindv
 
