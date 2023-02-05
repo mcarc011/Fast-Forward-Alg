@@ -2,6 +2,7 @@
 import numpy as np
 import sympy
 import time
+from scipy.linalg import null_space
 from itertools import combinations
 from itertools import product
 
@@ -107,7 +108,7 @@ def findkmatrix(xdict,nodenum,chiralweight):
                 pass
 
 
-def findtmatrix(kmatrix, nodenum):
+def findtmatrix(kmatrix, nodenum,timer=False):
     tlist = []
     for t in product(range(2),repeat=nodenum+3):
         store = True
@@ -124,7 +125,7 @@ def findtmatrix(kmatrix, nodenum):
         start = time.time()
         tindvsig = [int(str(tj)[1:-1].replace(' ',''),2) for tj in tindv]
         for n,ti in enumerate(ttest):
-            if n&20==0:
+            if n&20==0 and timer:
                 print(round(100*(n/len(ttest)),2))
                 print(int((time.time()-start)/60))
 
@@ -175,9 +176,9 @@ def findtmatrix(kmatrix, nodenum):
     return np.matrix([t0 for t0 in tlist if np.sum(t0)>0]),tvectors
     #return [tmatrix[i] for i in inds]
 
-def dmatrix(xdictvar,nodenum):
+def dmatrix(xkeys,nodenum):
     D = []
-    for chiral in xdictvar.keys():
+    for chiral in xkeys:
         t0 = np.zeros(nodenum)
         ind = chiral[chiral.find('{')+1:chiral.find('}')]
         if '.' in ind:
@@ -199,6 +200,9 @@ def Xweight(filestr,Xkeys):
         xweights+=[(len(text.split(key))-1,key)]
     xweights.sort()
     return xweights
+
+# def null_space(matrix):
+
 
 def kmodel(name):
     if name =='1':
@@ -237,11 +241,17 @@ def kmodel(name):
         K = np.transpose(K)
     return K
 
+def matrixnorm(fmatrix):
+    fmatrix = np.transpose([np.array([round(q,2) for q in fm]) for fm in fmatrix])
+    fmnorm = np.amin([abs(fmatrix.flatten()[i]) for i in np.nonzero(fmatrix.flatten())])
+    fmatrix = np.transpose(fmatrix/fmnorm)
+    return fmatrix
+
 #models = [(8,'model9.txt')]
-models = [(10,'model15.txt')]
+#models = [(10,'model15.txt')]
 #models = [(12,'model17.txt')]
 #models = [(6,'model3.txt')]
-#models = [(4,'c4z4.txt')]
+models = [(4,'c4z4.txt')]
 
 for m in models:
     jeterms = jandeterms(m[1])
@@ -250,30 +260,29 @@ for m in models:
     Km = [k[n] for n in k]
 
     kp = [[int(ki) for ki in k[n]] for n in k]
-    print('K Matrix\n')
-    print(np.array(kp))
+    # print('K Matrix\n')
+    # print(np.array(kp))
     T,tvec = findtmatrix(Km,m[0])
     P = Km*np.transpose(T)
 
     print('\n\nP Matrix\n')
     print(P)
     print(P[0].size,len(P))
-    #%%
-    # Dt = dmatrix(xdict,m[0])
-    # print('\n\nQd Matrix\n')
-    # print(Dt*P)
 
-    # Dt = [list(e) for e in Dt]
-    # Dt = [i[0]/abs(i[0]) for i in Dt]
+    Dt = dmatrix(list(k.keys()),m[0])
+    Qd = [np.linalg.lstsq(P,d)[0] for d in Dt]
+    Qd = matrixnorm(Qd)
+    print('\n\nQd Matrix\n')
+    print(Qd)
 
-    # Et = [list(e) for e in null_space(P)]
-    # Et = [i[0]/abs(i[0]) for i in Et]
-    # print('\n\nQE Matrix\n')
-    # print(Et)
+    Et = [e/e[0] for e in np.transpose(null_space(P))]
+    print('\n\nQE Matrix\n')
+    print(Et)
 
-    # Qt = Dt*Et
-    # print('\n\nToric Diagram\n')
-    # print(Dt*P)
+    Qt =  [np.array(qd) for qd in Qd] + Et
+    print('\n\nToric Diagram\n')
+    G = matrixnorm(null_space(Qt))
+    print(G)
 
 #%%
 
