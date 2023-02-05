@@ -122,32 +122,43 @@ def findtmatrix(kmatrix, nodenum):
 
     def treducefunc(tindv,ttest):
         start = time.time()
+        tindvsig = [int(str(tj)[1:-1].replace(' ',''),2) for tj in tindv]
         for n,ti in enumerate(ttest):
             if n&20==0:
                 print(round(100*(n/len(ttest)),2))
                 print(int((time.time()-start)/60))
-            save = True
-            lengthi = 0
+
             normv = np.linalg.norm(ti)
+            tisig = int(str(ti)[1:-1].replace(' ',''),2)
+
             testvec = []
-            for tj in tindv:
+            testsig = []
+            for i, tj in enumerate(tindv):
                 if all(ti-tj) >= 0:
                     testvec += [tj]
+                    testsig += [tindvsig[i]]
+
+            save = True
+            lengthi = 0
+
             while lengthi < len(tindv[0]) or lengthi < len(testvec):
                 lengthi += 1
                 if np.sqrt(lengthi)>normv:
                     break
                 for addedarr in combinations(range(len(testvec)),lengthi):
-                    tn = np.zeros(nodenum+3)
-                    for a in addedarr:
-                        tn += testvec[a]
-                    if all(tn==ti):
-                        save = False
-                        break
+                    sigtotal = np.sum([testsig[a] for a in addedarr])
+                    if sigtotal == tisig:
+                        tn = np.zeros(nodenum+3)
+                        for a in addedarr:
+                            tn += testvec[a]
+                        if all(tn==ti):
+                            save = False
+                            break
                 if not save:
                     break
             if save:
                 tindv +=[ti]
+                tindvsig += [tisig]
         return tindv
 
     _, inds = sympy.Matrix(tlist).T.rref() 
@@ -214,7 +225,7 @@ def kmodel(name):
             ]
         K = np.transpose(K)
 
-    if name =='3'
+    if name =='3':
         #c4/z2
         K = [
             [1,0,0,-1,0,-1,0,-1],
