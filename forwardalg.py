@@ -188,7 +188,7 @@ def dmatrix(xkeys,nodenum):
             ind1,ind2 = int(ind[0]),int(ind[1])
         t0[ind1-1],t0[ind2-1] = 1,-1
         D += [t0]
-    return np.transpose(D)[:-1]
+    return np.transpose(D)[1:]
     
 
 def Xweight(filestr,Xkeys):
@@ -247,6 +247,9 @@ def matrixnorm(fmatrix):
     fmatrix = np.transpose(fmatrix/fmnorm)
     return fmatrix
 
+def torickern(qtarrays):
+    return
+
 #models = [(8,'model9.txt')]
 #models = [(10,'model15.txt')]
 #models = [(12,'model17.txt')]
@@ -272,19 +275,26 @@ for m in models:
     Dt = dmatrix(list(k.keys()),m[0])
     Qd = [np.linalg.lstsq(P,d)[0] for d in Dt]
     Qd = matrixnorm(Qd)
+    Qd = [[int(q) for q in qd] for qd in Qd]
+    Qd = sympy.Matrix(Qd)
     print('\n\nQd Matrix\n')
     print(Qd)
 
-    Et = [e/e[0] for e in np.transpose(null_space(P))]
+    Psm = sympy.Matrix(P.tolist())
+    Et = sympy.Matrix(Psm.nullspace())
+    Et = Et.T
     print('\n\nQE Matrix\n')
     print(Et)
 
-    Qt =  [np.array(qd) for qd in Qd] + Et
+    Qt = [list(e) for e in np.array(Et)]+[list(d) for d in np.array(Qd)]
+    Qt2 = sympy.Matrix(Qt)
     print('\n\nToric Diagram\n')
-    G = matrixnorm(null_space(Qt))
-    print(G)
+    G = Qt2.nullspace()
+    G = sympy.Matrix([list(g.T) for g in G])
 
 #%%
+
+
 
 
 
