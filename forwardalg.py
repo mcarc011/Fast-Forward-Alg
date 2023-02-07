@@ -247,14 +247,11 @@ def kmodel(name):
 #     fmatrix = np.transpose(fmatrix/fmnorm)
 #     return fmatrix
 
-def torickern(qtarrays):
-    return
-
-models = [(8,'model9.txt')]
+#models = [(8,'model9.txt')]
 #models = [(10,'model15.txt')]
 #models = [(12,'model17.txt')]
 #models = [(6,'model3.txt')]
-#models = [(4,'c4z4.txt')]
+models = [(4,'c4z4.txt')]
 
 for m in models:
     jeterms = jandeterms(m[1])
