@@ -110,7 +110,7 @@ def findkmatrix(xdict,nodenum,chiralweight):
 
 def findtmatrix(kmatrix, nodenum,timer=False):
     tlist = []
-    for t in product(range(2),repeat=nodenum+3):
+    for t in product(range(3),repeat=nodenum+3):
         store = True
         for k in kmatrix:
             if np.dot(t,k)<0:
@@ -123,15 +123,14 @@ def findtmatrix(kmatrix, nodenum,timer=False):
 
     def treducefunc(tindv,ttest):
         start = time.time()
-        tindvsig = [int(str(tj)[1:-1].replace(' ',''),2) for tj in tindv]
+        tindvsig = [int(str(tj)[1:-1].replace(' ',''),3) for tj in tindv]
         for n,ti in enumerate(ttest):
             if n&20==0 and timer:
                 print(round(100*(n/len(ttest)),2))
                 print(int((time.time()-start)/60))
 
             normv = np.linalg.norm(ti)
-            tisig = int(str(ti)[1:-1].replace(' ',''),2)
-
+            tisig = int(str(ti)[1:-1].replace(' ',''),3)
             testvec = []
             testsig = []
             for i, tj in enumerate(tindv):
@@ -146,7 +145,7 @@ def findtmatrix(kmatrix, nodenum,timer=False):
                 lengthi += 1
                 if np.sqrt(lengthi)>normv:
                     break
-                for addedarr in combinations(range(len(testvec)),lengthi):
+                for addedarr in combinations(list(range(len(testvec)))*2,lengthi*2):
                     sigtotal = np.sum([testsig[a] for a in addedarr])
                     if sigtotal == tisig:
                         tn = np.zeros(nodenum+3)
@@ -168,6 +167,7 @@ def findtmatrix(kmatrix, nodenum,timer=False):
     tsort.sort()
     tprime = [tprime[tp[1]] for tp in tsort]
     tres = []
+
     for tind,t in enumerate(tlist):
         if tind not in inds:
             tres += [t]
@@ -247,36 +247,38 @@ def kmodel(name):
 #     fmatrix = np.transpose(fmatrix/fmnorm)
 #     return fmatrix
 
-#models = [(8,'model9.txt')]
+models = [(8,'model9.txt')]
 #models = [(10,'model15.txt')]
 #models = [(12,'model17.txt')]
 #models = [(6,'model3.txt')]
-models = [(4,'c4z4.txt')]
+#models = [(4,'c4z4.txt')]
+
 
 for m in models:
     jeterms = jandeterms(m[1])
     xdict = chiraldic(jeterms)
     k = findkmatrix(xdict,m[0],Xweight(m[1],xdict.keys()))
-    Km = [k[n] for n in k]
-    kp = [[int(ki) for ki in k[n]] for n in k]
+    skey2 = k.keys()
+    Km = [k[n] for n in skey2]
 
     T,tvec = findtmatrix(Km,m[0])
     P = sympy.Matrix(Km*np.transpose(T))
 
-    Dt = sympy.Matrix(dmatrix(list(k.keys()),m[0]))
-    Qd = P.gauss_jordan_solve(Dt.T)
-    Qdeval = Qd[0]
-    for var in Qd[1]:
-        Qdeval = Qdeval.subs(var,0)
-    Qd = Qdeval.T
+    # Dt = sympy.Matrix(dmatrix(list(skey2),m[0]))
+    # Qd = P.gauss_jordan_solve(Dt.T)
+    # Qdeval = Qd[0]
+    # for var in Qd[1]:
+    #     Qdeval = Qdeval.subs(var,0)
+    # Qd = Qdeval.T
 
-    Et = P.nullspace()
-    Et = sympy.Matrix([list(e.T) for e in Et])
+    # Et = P.nullspace()
+    # Et = sympy.Matrix([list(e.T) for e in Et])
 
-    Qt = Qd.row_insert(0,Et)
+    # Qt = Qd.row_insert(0,Et)
 
-    G = Qt.nullspace()
-    G = sympy.Matrix([list(g.T) for g in G])
+    # G = Qt.nullspace()
+    # G = sympy.Matrix([list(g.T) for g in G])
+
 
 
 #%%
