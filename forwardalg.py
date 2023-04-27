@@ -3,7 +3,7 @@ import numpy as np
 import sympy
 import time
 from scipy.linalg import null_space
-from itertools import combinations
+from itertools import combinations_with_replacement
 from itertools import product
 
 def jandeterms(filestr):
@@ -123,14 +123,15 @@ def findtmatrix(kmatrix, nodenum,timer=False):
 
     def treducefunc(tindv,ttest):
         start = time.time()
-        tindvsig = [int(str(tj)[1:-1].replace(' ',''),3) for tj in tindv]
+        tindvsig = [int(str(tj)[1:-1].replace(' ',''),4) for tj in tindv]
         for n,ti in enumerate(ttest):
             if n&20==0 and timer:
                 print(round(100*(n/len(ttest)),2))
                 print(int((time.time()-start)/60))
 
-            normv = np.linalg.norm(ti)
-            tisig = int(str(ti)[1:-1].replace(' ',''),3)
+            #normv = np.linalg.norm(ti)
+            tisig = int(str(ti)[1:-1].replace(' ',''),4)
+
             testvec = []
             testsig = []
             for i, tj in enumerate(tindv):
@@ -141,19 +142,13 @@ def findtmatrix(kmatrix, nodenum,timer=False):
             save = True
             lengthi = 0
 
-            while lengthi < len(tindv[0]) or lengthi < len(testvec):
+            while lengthi>np.sum(ti):# lengthi < len(tindv[0]): or lengthi < len(testvec):
                 lengthi += 1
-                if np.sqrt(lengthi)>normv:
-                    break
-                for addedarr in combinations(list(range(len(testvec)))*2,lengthi*2):
+                for addedarr in combinations_with_replacement(range(len(testvec)),lengthi):
                     sigtotal = np.sum([testsig[a] for a in addedarr])
                     if sigtotal == tisig:
-                        tn = np.zeros(nodenum+3)
-                        for a in addedarr:
-                            tn += testvec[a]
-                        if all(tn==ti):
-                            save = False
-                            break
+                        save = False
+                        break
                 if not save:
                     break
             if save:
@@ -167,7 +162,6 @@ def findtmatrix(kmatrix, nodenum,timer=False):
     tsort.sort()
     tprime = [tprime[tp[1]] for tp in tsort]
     tres = []
-
     for tind,t in enumerate(tlist):
         if tind not in inds:
             tres += [t]
@@ -253,7 +247,6 @@ models = [(8,'model9.txt')]
 #models = [(6,'model3.txt')]
 #models = [(4,'c4z4.txt')]
 
-
 for m in models:
     jeterms = jandeterms(m[1])
     xdict = chiraldic(jeterms)
@@ -278,7 +271,6 @@ for m in models:
 
     # G = Qt.nullspace()
     # G = sympy.Matrix([list(g.T) for g in G])
-
 
 
 #%%
