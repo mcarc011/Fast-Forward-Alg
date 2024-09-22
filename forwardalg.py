@@ -4,6 +4,7 @@ import sympy
 import time
 from scipy.linalg import null_space
 from itertools import combinations_with_replacement
+from itertools import combinations
 from itertools import product
 
 def jandeterms(filestr):
@@ -23,14 +24,20 @@ def chiraldic(jelist):
         Jterm,Eterm,mon = Jterm.replace('|',''), Eterm.replace('|',''), mon.replace('|','')
         Jterm,Eterm = Jterm.split('-'), Eterm.split('-')
         tempterm = {}
-        for term in mon.split(' '):
-            if '_' in term:
-                if term not in chirals:
-                    chirals[term] = []
-                if term not in tempterm:
-                    tempterm[term] = {}
-                tempterm[term]['J'] = [str(Jterm.index(i)) for i in Jterm if term in i]
-                tempterm[term]['E'] = [str(Eterm.index(i)) for i in Eterm if term in i]
+        for field in mon.split(' '):
+            if '_' in field:
+                if field not in chirals:
+                    chirals[field] = []
+                if field not in tempterm:
+                    tempterm[field] = {}
+                jinfo = [str(Jterm.index(i)) for i in Jterm if field in i]
+                einfo = [str(Eterm.index(i)) for i in Eterm if field in i]
+                if len(jinfo)!=1:
+                    jinfo = []
+                if len(einfo)!=1:
+                    einfo = []
+                tempterm[field]['J'] = jinfo
+                tempterm[field]['E'] = einfo
 
         for term1 in tempterm:
             rel = ['','']
@@ -46,6 +53,9 @@ def chiraldic(jelist):
             for r in rel:
                 if r !='':
                     chirals[term1] += [r]
+    for field in chirals:
+        if chirals[field] ==[]:
+            chirals[field] = [field]
     return chirals
 
 def findkmatrix(xdict,nodenum,chiralweight):       
@@ -110,27 +120,31 @@ def findkmatrix(xdict,nodenum,chiralweight):
 
 def findtmatrix(kmatrix, nodenum,timer=False):
     tlist = []
+    tlist2 = []
     for t in product(range(3),repeat=nodenum+3):
         store = True
         for k in kmatrix:
             if np.dot(t,k)<0:
                 store = False
                 break
-        if store and t not in tlist:
+        if store and t not in tlist and 2 not in t:
             tlist += [list(t)]
+        if store and t not in tlist2 and 2 in t:
+            tlist2 += [list(t)]
     tlist = [np.array(i) for i in tlist]
+    tlist2 = [np.array(i) for i in tlist2]
     tvectors = tlist.copy()
 
     def treducefunc(tindv,ttest):
         start = time.time()
-        tindvsig = [int(str(tj)[1:-1].replace(' ',''),4) for tj in tindv]
+        tindvsig = [int(str(tj)[1:-1].replace(' ',''),3) for tj in tindv]
         for n,ti in enumerate(ttest):
             if n&20==0 and timer:
                 print(round(100*(n/len(ttest)),2))
                 print(int((time.time()-start)/60))
 
             #normv = np.linalg.norm(ti)
-            tisig = int(str(ti)[1:-1].replace(' ',''),4)
+            tisig = int(str(ti)[1:-1].replace(' ',''),3)
 
             testvec = []
             testsig = []
@@ -142,9 +156,9 @@ def findtmatrix(kmatrix, nodenum,timer=False):
             save = True
             lengthi = 0
 
-            while lengthi>np.sum(ti):# lengthi < len(tindv[0]): or lengthi < len(testvec):
+            while lengthi<np.sum(ti) or lengthi < len(testvec):
                 lengthi += 1
-                for addedarr in combinations_with_replacement(range(len(testvec)),lengthi):
+                for addedarr in combinations(range(len(testvec)),lengthi):
                     sigtotal = np.sum([testsig[a] for a in addedarr])
                     if sigtotal == tisig:
                         save = False
@@ -166,7 +180,17 @@ def findtmatrix(kmatrix, nodenum,timer=False):
         if tind not in inds:
             tres += [t]
     tlist = treducefunc(tprime,tres)
-        
+
+    tsig = set()
+    testsig = [int(str(ti)[1:-1].replace(' ',''),4) for ti in tlist]
+    tsig2 = [int(str(ti)[1:-1].replace(' ',''),4) for ti in tlist2]
+    for li in range(2*len(tlist)):
+        for addedarr in combinations_with_replacement(range(len(tlist)),li):
+            tsig.add(np.sum([testsig[a] for a in addedarr]))
+    for t1 in tsig2:
+        if t1 not in testsig:
+            pass
+
     return np.matrix([t0 for t0 in tlist if np.sum(t0)>0]),tvectors
     #return [tmatrix[i] for i in inds]
 
@@ -241,14 +265,48 @@ def kmodel(name):
 #     fmatrix = np.transpose(fmatrix/fmnorm)
 #     return fmatrix
 
-models = [(8,'model9.txt')]
+#models = [(8,'model9.txt')]
 #models = [(10,'model15.txt')]
-#models = [(12,'model17.txt')]
+
 #models = [(6,'model3.txt')]
 #models = [(4,'c4z4.txt')]
+#models = [(2,'c4z2.txt')]
+#models = [(2,'cxC.txt')]
+#models = [(3,'sppxc.txt')]
+models = [(4,'q111.txt')]
+
+import re
+def convert_to_latex_subscript(s):
+    # Use regex to find a letter followed by numbers with a decimal and replace it with LaTeX subscript
+    result = re.sub(r'([A-Z])(\d+\.\d+)\.', r'\1_{\2} ', s)
+    return result.strip()
+
+M = 17
+with open('QuiverData\\model'+str(M)+'.txt','r') as f:
+    data = f.read()
+    data = data.replace('array','np.array')
+    data = eval(data)
+    data = data[-1][2]
+    f.close()   
+models = [(12,'QuiverData\\model'+str(M)+'.txt','r')]
+jeterms=[]
+sgndict = {'++':'+','--':'+','+-':'-','-+':'-'}
+for fermi in data:
+    terms = data[fermi]
+    terms = [t.replace(',',' ') for t in terms]
+    terms = [' '.join([convert_to_latex_subscript(t) for t in ti.split(',')]) for ti in terms]
+    sgn1,sgn2 = terms[0][0] + terms[1][0], terms[2][0]+terms[3][0]
+    if sgn1 in sgndict:
+        sgn1 = sgndict[sgn1]
+    if sgn2 in sgndict:
+        sgn2 = sgndict[sgn2]
+    terms = [t[1:] for t in terms]
+    jeterms += ['|' + terms[0] + sgn1 + terms[1] + '|' + terms[2] + sgn2 + terms[2] + '|']
+
+    
 
 for m in models:
-    jeterms = jandeterms(m[1])
+    #jeterms = jandeterms(m[1])
     xdict = chiraldic(jeterms)
     k = findkmatrix(xdict,m[0],Xweight(m[1],xdict.keys()))
     skey2 = k.keys()
